@@ -1,0 +1,10 @@
+*
+!Dockerfile
+!package.json
+!package-lock.json
+!migrations/
+!migrations/**
+!public/
+!public/**
+!src/
+!src/**

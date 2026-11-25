@@ -1,0 +1,44 @@
+name: blackcat-tasks
+
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: blackcat_tasks
+      POSTGRES_USER: blackcat
+      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: [CMD, pg_isready, -h, 127.0.0.1, -U, blackcat, -d, blackcat_tasks]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
+  app:
+    image: "${BLACKCAT_IMAGE:-blackcat-tasks:local}"
+    build: .
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      PGHOST: db
+      PGDATABASE: blackcat_tasks
+      PGUSER: blackcat
+      PGPASSWORD: "${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}"
+      ADMIN_EMAIL: "${ADMIN_EMAIL:-admin@example.test}"
+      ADMIN_NAME: "${ADMIN_NAME:-Администратор}"
+      ADMIN_PASSWORD: "${ADMIN_PASSWORD:-}"
+      SECURE_COOKIES: "${SECURE_COOKIES:-0}"
+    ports:
+      - "${BLACKCAT_BIND:-127.0.0.1}:${BLACKCAT_PORT:-3000}:3000"
+    healthcheck:
+      test: [CMD, node, -e, "fetch('http://127.0.0.1:3000/').then(r => { if (!r.ok) process.exit(1) }).catch(() => process.exit(1))"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+
+volumes:
+  postgres-data:
